@@ -91,9 +91,13 @@ class SiteGeoDaoRedis(SiteGeoDaoBase, RedisDaoBase):
         site_ids = self.redis.zrange(self.key_schema.site_geo_key(), 0, -1)
         sites = set()
 
+        pipeline = self.redis.pipeline()
         for site_id in site_ids:
             key = self.key_schema.site_hash_key(site_id)
-            site_hash = self.redis.hgetall(key)
-            sites.add(FlatSiteSchema().load(site_hash))
+            pipeline.hgetall(key)
+
+        results = pipeline.execute()
+        for site in results:
+            sites.add(FlatSiteSchema().load(site))
 
         return sites
